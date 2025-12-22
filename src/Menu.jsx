@@ -97,10 +97,11 @@ export default function Menu() {
           <model-viewer
             ref={viewerRef}
             // src={isIOS() ? getModelPaths(selectedDish).usdz : getModelPaths(selectedDish).glb}
-            src="/models/zinger.glb"
-            ios-src="/models/zinger.usdz"
+            src={getModelPaths(selectedDish).glb}
+            ios-src={getModelPaths(selectedDish).usdz}
             ar
             ar-modes="webxr scene-viewer quick-look"
+            quick-look-browsers="safari chrome"
             camera-controls
             disable-zoom
             shadow-intensity="0.6"
