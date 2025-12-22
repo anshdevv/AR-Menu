@@ -12,22 +12,8 @@ function App() {
 
   return (
     <div className="App">
- <BrowserRouter>
-      <Routes>
-        {/* Default redirect */}
-        <Route path="/" element={<Navigate to="/menu" replace />} />
 
-        {/* Menu page (QR opens this) */}
-        <Route path="/menu" element={<Menu />} />
-
-        {/* Demo / test page */}
-        <Route path="/demo" element={<Demo />} />
-
-        {/* Fallback for unknown routes */}
-        <Route path="*" element={<Navigate to="/menu" replace />} />
-      </Routes>
-    </BrowserRouter>
-        {/* <Menu/> */}
+        <Menu/>
     </div>
   );
 }
