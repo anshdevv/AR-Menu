@@ -1,23 +1,33 @@
 import logo from './logo.svg';
 import './App.css';
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import Menu from "./Menu";
+import Demo from "./Demo";
 
 function App() {
+  <script
+  type="module"
+  src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js">
+</script>
+
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+ <BrowserRouter>
+      <Routes>
+        {/* Default redirect */}
+        <Route path="/" element={<Navigate to="/menu" replace />} />
+
+        {/* Menu page (QR opens this) */}
+        <Route path="/menu" element={<Menu />} />
+
+        {/* Demo / test page */}
+        <Route path="/demo" element={<Demo />} />
+
+        {/* Fallback for unknown routes */}
+        <Route path="*" element={<Navigate to="/menu" replace />} />
+      </Routes>
+    </BrowserRouter>
+        {/* <Menu/> */}
     </div>
   );
 }
