@@ -32,8 +32,8 @@ export default function Menu() {
 
   // Get model paths based on dish id
   const getModelPaths = (dish) => ({
-    glb: `/models/${dish.id}.glb`,
-    usdz: `/models/${dish.id}.usdz`
+    glb: `${dish.model}.glb`,
+    usdz: `${dish.model}.usdz`
   });
 
   return (

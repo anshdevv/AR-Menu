@@ -5,7 +5,7 @@ export const MenuData = [
     price: 650,
     spice: 3,
     rating: 4.5,
-    model: " /models/zinger.glb"
+    model: " /models/zinger"
   },
   {
     id: "bagel",
@@ -13,7 +13,7 @@ export const MenuData = [
     price: 450,
     spice: 1,
     rating: 4.2,
-    model: " /models/bagel.glb"
+    model: " /models/bagel"
   },
   {
     id: "fried-chicken",
@@ -21,7 +21,7 @@ export const MenuData = [
     price: 700,
     spice: 4,
     rating: 4.6,
-    model: " /models/fried-chicken.glb"
+    model: " /models/fried-chicken"
   },
   {
     id: "caesar-salad",
@@ -29,7 +29,7 @@ export const MenuData = [
     price: 550,
     spice: 1,
     rating: 4.3,
-    model: " /models/caesar-salad .glb"
+    model: " /models/caesar-salad "
   },
   {
     id: "bbq-flatbread",
@@ -37,7 +37,7 @@ export const MenuData = [
     price: 750,
     spice: 2,
     rating: 4.4,
-    model: "/models/bbq-chicken-flatbread.glb"
+    model: "/models/bbq-chicken-flatbread"
   },
   {
     id: "chicken-kabab",
@@ -45,6 +45,6 @@ export const MenuData = [
     price: 600,
     spice: 4,
     rating: 4.7,
-    model: " /models/chicken-kabab.glb"
+    model: " /models/chicken-kabab"
   }
 ];
