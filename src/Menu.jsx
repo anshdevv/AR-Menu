@@ -96,9 +96,9 @@ export default function Menu() {
 
           <model-viewer
             ref={viewerRef}
-            src={isIOS() ? getModelPaths(selectedDish).usdz : getModelPaths(selectedDish).glb}
-            // ios-src={getModelPaths(selectedDish).usdz} // required for iOS Quick Look
-            // src="/models/Bagel.usdz"
+            // src={isIOS() ? getModelPaths(selectedDish).usdz : getModelPaths(selectedDish).glb}
+            src="/models/zinger.glb"
+            ios-src="/models/zinger.usdz"
             ar
             ar-modes="webxr scene-viewer quick-look"
             camera-controls
