@@ -6,6 +6,9 @@ export default function Menu() {
   const [loading, setLoading] = useState(false);
   const viewerRef = useRef(null);
 
+  // Device detection
+  const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  
   useEffect(() => {
     if (!viewerRef.current) return;
 
@@ -26,6 +29,12 @@ export default function Menu() {
       viewer.removeEventListener("progress", onProgress);
     };
   }, [selectedDish]);
+
+  // Get model paths based on dish id
+  const getModelPaths = (dish) => ({
+    glb: `/models/${dish.id}.glb`,
+    usdz: `/models/${dish.id}.usdz`
+  });
 
   return (
     <div style={{ padding: 16, fontFamily: "sans-serif" }}>
@@ -59,9 +68,7 @@ export default function Menu() {
 
       {selectedDish && (
         <div style={{ position: "relative" }}>
-          <button onClick={() => setSelectedDish(null)}>
-            ← Back
-          </button>
+          <button onClick={() => setSelectedDish(null)}>← Back</button>
 
           <h3>{selectedDish.name}</h3>
 
@@ -89,7 +96,8 @@ export default function Menu() {
 
           <model-viewer
             ref={viewerRef}
-            src={selectedDish.model}
+            src={isIOS() ? getModelPaths(selectedDish).usdz : getModelPaths(selectedDish).glb}
+            ios-src={getModelPaths(selectedDish).usdz} // required for iOS Quick Look
             ar
             ar-modes="webxr scene-viewer quick-look"
             camera-controls
