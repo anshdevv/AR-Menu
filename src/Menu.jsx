@@ -7,9 +7,6 @@ export default function Menu() {
   const [loading, setLoading] = useState(false);
   const viewerRef = useRef(null);
 
-  // Device detection
-  const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-  
   useEffect(() => {
     if (!viewerRef.current) return;
 
