@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { MenuData } from "./MenuData";
+import "./Menu.css";
 
 export default function Menu() {
   const [selectedDish, setSelectedDish] = useState(null);
@@ -37,80 +38,96 @@ export default function Menu() {
   });
 
   return (
-    <div style={{ padding: 16, fontFamily: "sans-serif" }}>
-      <h2>Restaurant Menu</h2>
-
+    <div className="menu-container">
       {!selectedDish && (
-        <div>
-          {MenuData.map((dish) => (
-            <div
-              key={dish.id}
-              onClick={() => {
-                setSelectedDish(dish);
-                setLoading(true);
-              }}
-              style={{
-                border: "1px solid #ddd",
-                borderRadius: 8,
-                padding: 12,
-                marginBottom: 10,
-                cursor: "pointer"
-              }}
-            >
-              <h3>{dish.name}</h3>
-              <p>Rs {dish.price}</p>
-              <p>Spice: {"🌶️".repeat(dish.spice)}</p>
-              <p>⭐ {dish.rating}</p>
-            </div>
-          ))}
-        </div>
+        <>
+          <div className="menu-header">
+            <h1 className="restaurant-name">🍽️ Mapolos</h1>
+            <p className="menu-subtitle">Discover Culinary Excellence</p>
+          </div>
+
+          <div className="menu-grid">
+            {MenuData.map((dish) => (
+              <div
+                key={dish.id}
+                className="menu-card"
+                onClick={() => {
+                  setSelectedDish(dish);
+                  setLoading(true);
+                }}
+              >
+                <div className="card-header">
+                  <h3 className="dish-name">{dish.name}</h3>
+                  <span className="rating-badge">⭐ {dish.rating}</span>
+                </div>
+                <div className="card-body">
+                  <div className="price-section">
+                    <span className="price">Rs {dish.price}</span>
+                  </div>
+                  <div className="spice-section">
+                    <span className="spice-label">Spice Level:</span>
+                    <span className="spice-peppers">{"🌶️".repeat(dish.spice)}</span>
+                  </div>
+                </div>
+                <div className="card-footer">
+                  <span className="view-btn">View 3D Model →</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {selectedDish && (
-        <div style={{ position: "relative" }}>
-          <button onClick={() => setSelectedDish(null)}>← Back</button>
+        <div className="dish-detail">
+          <button className="back-button" onClick={() => setSelectedDish(null)}>
+            ← Back to Menu
+          </button>
 
-          <h3>{selectedDish.name}</h3>
+          <div className="detail-header">
+            <h2>{selectedDish.name}</h2>
+          </div>
 
-          {/* LOADING OVERLAY */}
-          {loading && (
-            <div
-              style={{
-                position: "absolute",
-                top: 80,
-                left: 0,
-                right: 0,
-                height: "60vh",
-                background: "rgba(255,255,255,0.9)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                zIndex: 10,
-                flexDirection: "column"
-              }}
-            >
-              <div className="spinner" />
-              <p>Loading 3D preview…</p>
+          <div className="model-container">
+            {/* LOADING OVERLAY */}
+            {loading && (
+              <div className="loading-overlay">
+                <div className="spinner" />
+                <p>Loading 3D preview…</p>
+              </div>
+            )}
+
+            <model-viewer
+              ref={viewerRef}
+              src={getModelPaths(selectedDish).glb}
+              ios-src={getModelPaths(selectedDish).usdz}
+              ar
+              ar-modes="webxr scene-viewer quick-look"
+              quick-look-browsers="safari chrome"
+              camera-controls
+              disable-zoom
+              shadow-intensity="0.6"
+            />
+          </div>
+
+          <div className="detail-info">
+            <div className="info-row">
+              <div className="info-item">
+                <span className="info-label">Price</span>
+                <span className="info-value">Rs {selectedDish.price}</span>
+              </div>
+              <div className="info-item">
+                <span className="info-label">Rating</span>
+                <span className="info-value">⭐ {selectedDish.rating}</span>
+              </div>
             </div>
-          )}
-
-          <model-viewer
-            ref={viewerRef}
-            // src={isIOS() ? getModelPaths(selectedDish).usdz : getModelPaths(selectedDish).glb}
-            src={getModelPaths(selectedDish).glb}
-            ios-src={getModelPaths(selectedDish).usdz}
-            ar
-            ar-modes="webxr scene-viewer quick-look"
-            quick-look-browsers="safari chrome"
-            camera-controls
-            disable-zoom
-            shadow-intensity="0.6"
-            style={{ width: "100%", height: "60vh" }}
-          />
-
-          <p>Price: Rs {selectedDish.price}</p>
-          <p>Spice: {"🌶️".repeat(selectedDish.spice)}</p>
-          <p>Rating: ⭐ {selectedDish.rating}</p>
+            <div className="info-row">
+              <div className="info-item">
+                <span className="info-label">Spice Level</span>
+                <span className="info-value">{"🌶️".repeat(selectedDish.spice)}</span>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
