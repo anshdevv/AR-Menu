@@ -1,0 +1,27 @@
+<svg width="1200" height="900" viewBox="0 0 1200 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="900" rx="48" fill="#F7F1E8"/>
+  <circle cx="944" cy="182" r="122" fill="#ECD8BE"/>
+  <circle cx="1025" cy="736" r="164" fill="#EFE2CF"/>
+  <circle cx="265" cy="205" r="112" fill="#F1E6D8"/>
+  <ellipse cx="642" cy="484" rx="305" ry="234" fill="#E4D3BE"/>
+  <ellipse cx="642" cy="484" rx="262" ry="198" fill="#FFF8F0"/>
+  <ellipse cx="643" cy="487" rx="198" ry="148" fill="#F2E1C8"/>
+  <path d="M516 503C550 457 582 440 628 445C672 450 716 474 762 447C727 514 679 554 628 553C589 553 546 534 516 503Z" fill="#E5C08B"/>
+  <path d="M509 467C548 431 587 414 627 420C673 427 711 452 771 430C740 473 693 504 637 506C585 507 538 490 509 467Z" fill="#F0D9B1"/>
+  <path d="M514 537C550 515 585 507 625 512C664 518 700 534 743 526C716 560 675 581 632 581C590 581 548 565 514 537Z" fill="#EFCF9F"/>
+  <ellipse cx="697" cy="408" rx="46" ry="34" fill="#D6A368"/>
+  <ellipse cx="704" cy="414" rx="32" ry="22" fill="#C98A45"/>
+  <ellipse cx="578" cy="558" rx="40" ry="30" fill="#D6A368"/>
+  <ellipse cx="582" cy="563" rx="26" ry="18" fill="#C98A45"/>
+  <path d="M526 403C545 389 571 395 582 417C591 436 584 464 563 473C541 482 516 467 509 445C505 429 511 413 526 403Z" fill="#F4E7D0"/>
+  <path d="M693 563C712 549 738 555 749 577C758 596 751 624 730 633C708 642 683 627 676 605C672 589 678 573 693 563Z" fill="#F4E7D0"/>
+  <path d="M613 371C623 349 650 339 672 350C693 361 702 388 692 409C682 430 655 439 634 429C613 418 604 392 613 371Z" fill="#F4E7D0"/>
+  <path d="M572 362C585 353 600 354 613 367" stroke="#6A8F51" stroke-width="10" stroke-linecap="round"/>
+  <path d="M730 530C741 520 757 521 769 532" stroke="#6A8F51" stroke-width="10" stroke-linecap="round"/>
+  <path d="M523 548C535 538 552 540 565 552" stroke="#6A8F51" stroke-width="10" stroke-linecap="round"/>
+  <text x="92" y="142" fill="#8A5F2E" font-family="Manrope, sans-serif" font-size="30" font-weight="800" letter-spacing="7">CHEF SIGNATURE</text>
+  <text x="92" y="242" fill="#1A1714" font-family="'Cormorant Garamond', serif" font-size="92" font-weight="700">Chicken Alfredo</text>
+  <text x="94" y="304" fill="#6C6258" font-family="Manrope, sans-serif" font-size="28">Parmesan cream, lemon zest, silk ribbons of pasta.</text>
+  <rect x="94" y="358" width="192" height="58" rx="29" fill="#FFFFFF"/>
+  <text x="126" y="396" fill="#181512" font-family="Manrope, sans-serif" font-size="28" font-weight="700">AR available</text>
+</svg>

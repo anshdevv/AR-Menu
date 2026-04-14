@@ -1,0 +1,556 @@
+.menu-shell {
+  min-height: 100vh;
+  max-width: 1220px;
+  margin: 0 auto;
+  padding: 24px;
+  background: #ffffff;
+  color: #181512;
+}
+
+.menu-state-shell {
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+
+.section-label {
+  margin: 0 0 12px;
+  color: #9b6a34;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.restaurant-hero,
+.menu-overview,
+.menu-section,
+.receipt-panel,
+.order-status-card {
+  border: 1px solid rgba(30, 22, 15, 0.08);
+  border-radius: 32px;
+  background: #ffffff;
+  box-shadow: 0 18px 50px rgba(33, 24, 17, 0.06);
+}
+
+.restaurant-hero {
+  display: grid;
+  gap: 24px;
+  padding: 44px;
+  background:
+    radial-gradient(circle at top right, rgba(155, 106, 52, 0.1), transparent 28%),
+    #ffffff;
+}
+
+.restaurant-hero h1,
+.menu-overview h2,
+.menu-section-head h2,
+.receipt-panel h2,
+.checkout-drawer h2,
+.ar-modal h2,
+.order-status-head h3,
+.dish-card h3 {
+  margin: 0;
+  font-family: "Cormorant Garamond", serif;
+}
+
+.restaurant-hero h1 {
+  font-size: clamp(2.8rem, 6vw, 5.4rem);
+  line-height: 0.95;
+}
+
+.restaurant-copy,
+.dish-card-description,
+.receipt-copy,
+.ar-modal-copy,
+.checkout-line-item p,
+.order-status-copy,
+.order-status-step p {
+  color: #675d53;
+  line-height: 1.72;
+}
+
+.restaurant-meta,
+.receipt-status,
+.menu-overview-side {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.restaurant-meta span,
+.receipt-status,
+.overview-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 14px;
+  border-radius: 999px;
+  background: #f8f2ea;
+  color: #4f473e;
+  font-size: 0.88rem;
+}
+
+.menu-primary-button,
+.menu-secondary-button,
+.menu-ghost-button,
+.cart-pill,
+.ar-launch-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 50px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: none;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 0.18s ease, opacity 0.18s ease, border-color 0.18s ease;
+}
+
+.menu-primary-button {
+  color: #ffffff;
+  background: #181512;
+}
+
+.menu-secondary-button,
+.menu-ghost-button {
+  color: #181512;
+  background: transparent;
+  border: 1px solid rgba(30, 22, 15, 0.12);
+}
+
+.menu-primary-button:hover,
+.menu-secondary-button:hover,
+.menu-ghost-button:hover,
+.cart-pill:hover {
+  transform: translateY(-1px);
+}
+
+.menu-overview,
+.menu-section,
+.receipt-panel {
+  margin-top: 24px;
+  padding: 28px;
+}
+
+.menu-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  gap: 22px;
+  align-items: end;
+}
+
+.menu-overview h2,
+.menu-section-head h2,
+.receipt-panel h2,
+.checkout-drawer h2,
+.ar-modal h2 {
+  font-size: clamp(2rem, 4vw, 3.3rem);
+  line-height: 0.98;
+}
+
+.menu-panel-head,
+.menu-section-head,
+.dish-card-top,
+.checkout-line-item,
+.checkout-summary,
+.receipt-item,
+.order-status-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.menu-section-head {
+  margin-bottom: 22px;
+}
+
+.menu-section-head p:last-child {
+  margin: 0;
+  color: #7c746a;
+}
+
+.dish-card-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dish-card {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 18px;
+  padding: 18px;
+  border-radius: 28px;
+  background:
+    linear-gradient(180deg, rgba(250, 247, 241, 0.9), #ffffff 60%),
+    #ffffff;
+  border: 1px solid rgba(30, 22, 15, 0.08);
+}
+
+.dish-card-image {
+  overflow: hidden;
+  border-radius: 22px;
+  background: #f2ece3;
+  min-height: 220px;
+}
+
+.dish-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dish-card h3 {
+  font-size: 2rem;
+}
+
+.dish-card-top strong {
+  font-size: 1.1rem;
+  white-space: nowrap;
+}
+
+.dish-card-description {
+  margin: 14px 0 0;
+}
+
+.dish-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.dish-quantity-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid rgba(30, 22, 15, 0.1);
+}
+
+.dish-quantity-control button {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: #181512;
+  color: #ffffff;
+  font-size: 1rem;
+}
+
+.dish-quantity-control span {
+  min-width: 20px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.cart-pill {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  min-width: min(92vw, 420px);
+  justify-content: space-between;
+  color: #ffffff;
+  background: #181512;
+  box-shadow: 0 14px 36px rgba(22, 18, 14, 0.22);
+  z-index: 30;
+}
+
+.menu-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(12, 10, 8, 0.4);
+  backdrop-filter: blur(8px);
+  z-index: 40;
+}
+
+.checkout-drawer,
+.ar-modal {
+  width: min(760px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  padding: 28px;
+  border-radius: 30px;
+  background: #ffffff;
+  box-shadow: 0 18px 60px rgba(22, 18, 14, 0.18);
+}
+
+.menu-panel-head {
+  margin-bottom: 18px;
+}
+
+.checkout-line-items {
+  display: grid;
+  gap: 12px;
+}
+
+.checkout-line-item,
+.receipt-item {
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: #fbfaf7;
+  border: 1px solid rgba(30, 22, 15, 0.07);
+}
+
+.checkout-fields {
+  display: grid;
+  gap: 14px;
+  margin: 18px 0;
+}
+
+.menu-field {
+  display: grid;
+  gap: 8px;
+}
+
+.menu-field span,
+.receipt-grid span {
+  color: #7c746a;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.menu-field input,
+.menu-field textarea {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(30, 22, 15, 0.12);
+  background: #ffffff;
+  color: #181512;
+  resize: vertical;
+}
+
+.checkout-summary {
+  margin: 8px 0 18px;
+}
+
+.checkout-summary strong {
+  font-size: 1.3rem;
+}
+
+.checkout-submit {
+  width: 100%;
+}
+
+.ar-modal-copy {
+  margin: 0 0 18px;
+}
+
+.ar-viewer-shell {
+  position: relative;
+  height: min(68vh, 580px);
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid rgba(30, 22, 15, 0.08);
+  background:
+    radial-gradient(circle at top, rgba(138, 95, 46, 0.12), transparent 25%),
+    #f8f4ee;
+}
+
+.ar-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(248, 244, 238, 0.72);
+  color: #655c53;
+  z-index: 1;
+}
+
+.ar-launch-button {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+}
+
+.receipt-code-block {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 64px));
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.receipt-code-digit {
+  display: grid;
+  place-items: center;
+  height: 76px;
+  border-radius: 20px;
+  background: #f7f1e8;
+  color: #181512;
+  font-family: "Cormorant Garamond", serif;
+  font-size: 2.2rem;
+  font-weight: 700;
+}
+
+.receipt-copy {
+  margin: 20px 0 0;
+}
+
+.order-status-card {
+  margin-top: 24px;
+  padding: 22px;
+  background: linear-gradient(180deg, #fffaf4, #ffffff 70%);
+}
+
+.order-status-copy {
+  margin: 0;
+}
+
+.order-status-steps {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.order-status-step {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(30, 22, 15, 0.08);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.order-status-step strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.order-status-step p {
+  margin: 0;
+}
+
+.order-status-bullet {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #f0e7d9;
+  color: #76522d;
+  font-weight: 800;
+}
+
+.order-status-step.is-done {
+  border-color: rgba(43, 98, 63, 0.18);
+  background: #f1f9f2;
+}
+
+.order-status-step.is-done .order-status-bullet {
+  background: #2d6d43;
+  color: #ffffff;
+}
+
+.order-status-step.is-active {
+  border-color: rgba(155, 106, 52, 0.28);
+  box-shadow: 0 10px 26px rgba(155, 106, 52, 0.08);
+}
+
+.receipt-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 24px 0;
+}
+
+.receipt-grid strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 1.05rem;
+}
+
+.receipt-items {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.receipt-status.tone-confirmed,
+.receipt-status.tone-active {
+  background: #edf8ef;
+  color: #2d6d43;
+}
+
+.receipt-status.tone-pending {
+  background: #f7f1e8;
+  color: #8a5f2e;
+}
+
+.receipt-status.tone-expired {
+  background: #faece9;
+  color: #985449;
+}
+
+.menu-inline-error {
+  color: #985449;
+}
+
+@media (max-width: 980px) {
+  .menu-overview,
+  .dish-card {
+    grid-template-columns: 1fr;
+  }
+
+  .dish-card-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .menu-shell {
+    padding: 16px;
+  }
+
+  .restaurant-hero,
+  .menu-overview,
+  .menu-section,
+  .receipt-panel,
+  .checkout-drawer,
+  .ar-modal,
+  .order-status-card {
+    padding: 22px;
+    border-radius: 24px;
+  }
+
+  .receipt-code-block {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .receipt-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .menu-panel-head,
+  .dish-card-top,
+  .dish-card-footer,
+  .checkout-line-item,
+  .checkout-summary,
+  .receipt-item,
+  .menu-section-head,
+  .order-status-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cart-pill {
+    min-width: calc(100vw - 32px);
+  }
+}

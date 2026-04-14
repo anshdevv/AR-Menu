@@ -1,0 +1,24 @@
+<svg width="1200" height="900" viewBox="0 0 1200 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="900" rx="48" fill="#F6F4EF"/>
+  <circle cx="1028" cy="174" r="132" fill="#E6EFE2"/>
+  <circle cx="218" cy="714" r="176" fill="#EEE9DF"/>
+  <circle cx="248" cy="188" r="104" fill="#F1ECE3"/>
+  <ellipse cx="650" cy="470" rx="312" ry="236" fill="#DCE6D8"/>
+  <ellipse cx="650" cy="470" rx="268" ry="202" fill="#FFFDFC"/>
+  <ellipse cx="650" cy="472" rx="206" ry="154" fill="#E7D9C2"/>
+  <path d="M521 497C547 440 600 406 668 408C724 409 778 434 804 476C769 542 711 588 648 587C589 586 543 551 521 497Z" fill="#D19A5E"/>
+  <path d="M551 510C583 468 625 445 671 448C718 451 752 472 779 506C748 551 699 579 647 579C603 579 568 557 551 510Z" fill="#BF7E38"/>
+  <path d="M493 552C531 532 572 523 613 529C653 536 692 557 739 558C701 598 652 621 600 619C556 617 519 595 493 552Z" fill="#D7B48B"/>
+  <path d="M757 404C783 395 807 411 817 438C827 465 815 494 789 502C763 510 739 494 729 467C720 440 732 413 757 404Z" fill="#F0E0C8"/>
+  <path d="M543 430C567 421 592 437 602 464C611 491 600 518 575 527C550 536 526 520 517 493C507 466 519 439 543 430Z" fill="#F0E0C8"/>
+  <path d="M673 356C696 347 721 363 730 390C739 417 728 444 703 453C679 461 654 446 645 418C636 391 648 365 673 356Z" fill="#F0E0C8"/>
+  <path d="M519 394C547 398 568 414 579 441" stroke="#6B8E59" stroke-width="12" stroke-linecap="round"/>
+  <path d="M714 334C734 346 748 365 752 389" stroke="#6B8E59" stroke-width="12" stroke-linecap="round"/>
+  <path d="M773 529C791 540 805 557 809 579" stroke="#6B8E59" stroke-width="12" stroke-linecap="round"/>
+  <path d="M538 580C559 591 574 610 578 632" stroke="#6B8E59" stroke-width="12" stroke-linecap="round"/>
+  <text x="92" y="142" fill="#6B8E59" font-family="Manrope, sans-serif" font-size="30" font-weight="800" letter-spacing="7">HOUSE FAVORITE</text>
+  <text x="92" y="242" fill="#1A1714" font-family="'Cormorant Garamond', serif" font-size="92" font-weight="700">Tarragon Chicken</text>
+  <text x="94" y="304" fill="#6C6258" font-family="Manrope, sans-serif" font-size="28">Roasted chicken, herb cream, charred vegetables, warm finish.</text>
+  <rect x="94" y="358" width="192" height="58" rx="29" fill="#FFFFFF"/>
+  <text x="126" y="396" fill="#181512" font-family="Manrope, sans-serif" font-size="28" font-weight="700">AR available</text>
+</svg>
