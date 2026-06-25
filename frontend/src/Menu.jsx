@@ -5,7 +5,9 @@ import {
   formatCurrency,
   getOrderStatus,
   getRestaurantCatalog,
+  resolveTable,
 } from "./orderService";
+import { printCustomerReceipt } from "./printing";
 import "./Menu.css";
 
 const MODEL_VIEWER_SRC = "https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js";
@@ -13,9 +15,9 @@ const RECEIPT_STORAGE_PREFIX = "mapolos-customer-receipt";
 
 const ORDER_STAGES = [
   {
-    key: "pending_verification",
-    label: "Pending confirmation",
-    detail: "Show the 6-digit code to a staff member so the kitchen can begin.",
+    key: "confirmed",
+    label: "Confirmed",
+    detail: "A staff member verified your code and the kitchen has the order.",
   },
   {
     key: "preparing",
@@ -23,14 +25,14 @@ const ORDER_STAGES = [
     detail: "Your order is in the kitchen and the dishes are being cooked.",
   },
   {
-    key: "plating",
-    label: "Plating",
-    detail: "Final garnish and quality check before service.",
+    key: "ready",
+    label: "Ready",
+    detail: "Final garnish and quality check — your order is ready to leave the pass.",
   },
   {
-    key: "serving",
-    label: "Serving",
-    detail: "Your order is on its way to the table.",
+    key: "served",
+    label: "Served",
+    detail: "Your order is on its way to the table. Enjoy!",
   },
 ];
 
@@ -137,62 +139,72 @@ function formatTimeLeft(isoValue) {
   return `${minutes} minutes left`;
 }
 
-function getDisplayedOrderState(receipt, nowValue) {
-  if (!receipt) {
-    return {
-      activeIndex: 0,
-      badgeLabel: "Pending confirmation",
-      badgeTone: "pending",
-      helper:
-        "Place the order and show your one-time code to a staff member to move it into the kitchen queue.",
-    };
-  }
+// Maps the real, staff-driven order status onto the customer-facing timeline.
+function getDisplayedOrderState(receipt) {
+  if (!receipt || receipt.status === "pending_verification" || !receipt.isVerified) {
+    if (receipt && receipt.status === "expired") {
+      return {
+        activeIndex: -1,
+        badgeLabel: "Expired",
+        badgeTone: "expired",
+        helper:
+          "This verification code has expired. Start a new order if you still want these dishes.",
+      };
+    }
 
-  if (receipt.status === "expired") {
     return {
-      activeIndex: 0,
-      badgeLabel: "Expired",
-      badgeTone: "expired",
-      helper: "This verification code has expired. Start a new order if you still want these dishes.",
-    };
-  }
-
-  if (receipt.status === "pending_verification" || !receipt.isVerified) {
-    return {
-      activeIndex: 0,
+      activeIndex: -1,
       badgeLabel: "Awaiting confirmation",
       badgeTone: "pending",
-      helper: "Show the code below to the manager or server so the kitchen can begin preparing it.",
+      helper:
+        "Show the code below to the manager or server so the kitchen can begin preparing it.",
     };
   }
 
-  const timelineStart = new Date(receipt.verifiedAt || receipt.createdAt || nowValue).getTime();
-  const elapsedMinutes = Math.max(0, (nowValue - timelineStart) / 60000);
-
-  if (elapsedMinutes < 4) {
-    return {
-      activeIndex: 1,
-      badgeLabel: "Preparing",
-      badgeTone: "active",
-      helper: "Your order has been verified and is now being prepared by the kitchen.",
-    };
+  switch (receipt.status) {
+    case "confirmed":
+      return {
+        activeIndex: 0,
+        badgeLabel: "Confirmed",
+        badgeTone: "active",
+        helper: "Your code was verified. The kitchen is about to start your order.",
+      };
+    case "preparing":
+      return {
+        activeIndex: 1,
+        badgeLabel: "Preparing",
+        badgeTone: "active",
+        helper: "Your order is being prepared by the kitchen right now.",
+      };
+    case "ready":
+      return {
+        activeIndex: 2,
+        badgeLabel: "Ready",
+        badgeTone: "active",
+        helper: "Your order is plated and ready — a server is bringing it over.",
+      };
+    case "served":
+      return {
+        activeIndex: 3,
+        badgeLabel: "Served",
+        badgeTone: "confirmed",
+        helper: "Your order has been served. Enjoy your meal!",
+      };
+    case "cancelled":
+      return {
+        activeIndex: -1,
+        badgeLabel: "Cancelled",
+        badgeTone: "expired",
+        helper: "This order was cancelled by staff. Please speak to a server if this is unexpected.",
+      };
+    default:
+      return {
+        activeIndex: 0,
+        badgeLabel: "Confirmed",
+        badgeTone: "active",
+        helper: "Your order is confirmed.",
+      };
   }
-
-  if (elapsedMinutes < 8) {
-    return {
-      activeIndex: 2,
-      badgeLabel: "Plating",
-      badgeTone: "active",
-      helper: "The kitchen is finishing your order and arranging the plates for service.",
-    };
-  }
-
-  return {
-    activeIndex: 3,
-    badgeLabel: "Serving",
-    badgeTone: "confirmed",
-    helper: "Your order is leaving the pass and should be at your table shortly.",
-  };
 }
 
 function StatusBadge({ label, tone }) {
@@ -204,33 +216,42 @@ function DishCard({ dish, quantity, onAdjustQuantity, onViewAr }) {
     <article className="dish-card">
       <div className="dish-card-image">
         <img alt={dish.name} src={dish.imageUrl} />
+        <button
+          className="dish-ar-chip"
+          onClick={() => onViewAr(dish)}
+          type="button"
+        >
+          View in AR
+        </button>
       </div>
 
       <div className="dish-card-body">
         <div className="dish-card-top">
-          <div>
-            <p className="section-label">{dish.category}</p>
-            <h3>{dish.name}</h3>
-          </div>
+          <h3>{dish.name}</h3>
           <strong>{formatCurrency(dish.price)}</strong>
         </div>
 
         <p className="dish-card-description">{dish.description}</p>
 
         <div className="dish-card-footer">
-          <button className="menu-secondary-button" onClick={() => onViewAr(dish)}>
-            View in AR
-          </button>
-
-          <div className="dish-quantity-control">
-            <button aria-label={`Remove ${dish.name}`} onClick={() => onAdjustQuantity(dish.id, -1)}>
-              -
+          {quantity > 0 ? (
+            <div className="dish-quantity-control">
+              <button
+                aria-label={`Remove ${dish.name}`}
+                onClick={() => onAdjustQuantity(dish.id, -1)}
+              >
+                −
+              </button>
+              <span>{quantity}</span>
+              <button aria-label={`Add ${dish.name}`} onClick={() => onAdjustQuantity(dish.id, 1)}>
+                +
+              </button>
+            </div>
+          ) : (
+            <button className="dish-add-button" onClick={() => onAdjustQuantity(dish.id, 1)}>
+              Add to order
             </button>
-            <span>{quantity}</span>
-            <button aria-label={`Add ${dish.name}`} onClick={() => onAdjustQuantity(dish.id, 1)}>
-              +
-            </button>
-          </div>
+          )}
         </div>
       </div>
     </article>
@@ -241,6 +262,7 @@ function CheckoutDrawer({
   cartItems,
   customerName,
   tableNumber,
+  tableLocked,
   specialRequest,
   onCustomerNameChange,
   onTableNumberChange,
@@ -254,74 +276,77 @@ function CheckoutDrawer({
   const cartTotal = cartItems.reduce((sum, item) => sum + item.lineTotal, 0);
 
   return (
-    <div className="menu-modal-backdrop" onClick={onClose}>
-      <section className="checkout-drawer" onClick={(event) => event.stopPropagation()}>
-        <div className="menu-panel-head">
-          <div>
-            <p className="section-label">Review order</p>
-            <h2>Send it to the kitchen</h2>
-          </div>
-          <button className="menu-ghost-button" onClick={onClose}>
-            Close
+    <div className="menu-sheet-backdrop" onClick={onClose}>
+      <section className="checkout-sheet" onClick={(event) => event.stopPropagation()}>
+        <div className="sheet-grip" />
+
+        <div className="checkout-sheet-head">
+          <h2>Your order</h2>
+          <button className="sheet-close" onClick={onClose} aria-label="Close">
+            ✕
           </button>
         </div>
 
-        <div className="checkout-line-items">
-          {cartItems.map((item) => (
-            <div className="checkout-line-item" key={item.id}>
-              <div>
-                <strong>{item.name}</strong>
-                <p>{formatCurrency(item.price)}</p>
+        <div className="checkout-sheet-body">
+          <div className="checkout-line-items">
+            {cartItems.map((item) => (
+              <div className="checkout-line-item" key={item.id}>
+                <div>
+                  <strong>{item.name}</strong>
+                  <p>{formatCurrency(item.price)}</p>
+                </div>
+                <div className="dish-quantity-control">
+                  <button onClick={() => onQuantityChange(item.id, -1)}>−</button>
+                  <span>{item.quantity}</span>
+                  <button onClick={() => onQuantityChange(item.id, 1)}>+</button>
+                </div>
               </div>
-              <div className="dish-quantity-control">
-                <button onClick={() => onQuantityChange(item.id, -1)}>-</button>
-                <span>{item.quantity}</span>
-                <button onClick={() => onQuantityChange(item.id, 1)}>+</button>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
+
+          <div className="checkout-fields">
+            <label className="menu-field">
+              <span>Name (optional)</span>
+              <input
+                onChange={(event) => onCustomerNameChange(event.target.value)}
+                placeholder="Your name"
+                value={customerName}
+              />
+            </label>
+
+            <label className="menu-field">
+              <span>Table number {tableLocked ? "(from QR)" : ""}</span>
+              <input
+                disabled={tableLocked}
+                onChange={(event) => onTableNumberChange(event.target.value)}
+                placeholder="T-12"
+                value={tableNumber}
+              />
+            </label>
+
+            <label className="menu-field">
+              <span>Special request (optional)</span>
+              <textarea
+                onChange={(event) => onSpecialRequestChange(event.target.value)}
+                placeholder="No onions, extra cutlery, serve later..."
+                rows={2}
+                value={specialRequest}
+              />
+            </label>
+          </div>
+
+          {submitError ? <p className="menu-inline-error">{submitError}</p> : null}
         </div>
 
-        <div className="checkout-fields">
-          <label className="menu-field">
-            <span>Name (optional)</span>
-            <input
-              onChange={(event) => onCustomerNameChange(event.target.value)}
-              placeholder="Ayesha"
-              value={customerName}
-            />
-          </label>
-
-          <label className="menu-field">
-            <span>Table number</span>
-            <input
-              onChange={(event) => onTableNumberChange(event.target.value)}
-              placeholder="T-12"
-              value={tableNumber}
-            />
-          </label>
-
-          <label className="menu-field">
-            <span>Special request (optional)</span>
-            <textarea
-              onChange={(event) => onSpecialRequestChange(event.target.value)}
-              placeholder="No onions, extra cutlery, serve later..."
-              rows={3}
-              value={specialRequest}
-            />
-          </label>
+        <div className="checkout-sheet-footer">
+          <div className="checkout-summary">
+            <span>Total</span>
+            <strong>{formatCurrency(cartTotal)}</strong>
+          </div>
+          <button className="menu-primary-button checkout-submit" disabled={submitting} onClick={onSubmit}>
+            {submitting ? "Sending order..." : "Place order"}
+          </button>
         </div>
-
-        <div className="checkout-summary">
-          <span>Total</span>
-          <strong>{formatCurrency(cartTotal)}</strong>
-        </div>
-
-        <button className="menu-primary-button checkout-submit" disabled={submitting} onClick={onSubmit}>
-          {submitting ? "Sending order..." : "Place order"}
-        </button>
-
-        {submitError ? <p className="menu-inline-error">{submitError}</p> : null}
       </section>
     </div>
   );
@@ -386,8 +411,8 @@ function ArModal({ dish, loading, onClose, onModelLoad }) {
   );
 }
 
-function OrderStatusTimeline({ receipt, nowValue }) {
-  const displayState = getDisplayedOrderState(receipt, nowValue);
+function OrderStatusTimeline({ receipt }) {
+  const displayState = getDisplayedOrderState(receipt);
 
   return (
     <section className="order-status-card">
@@ -424,8 +449,329 @@ function OrderStatusTimeline({ receipt, nowValue }) {
   );
 }
 
-function ReceiptPanel({ restaurant, receipt, onStartNewOrder, nowValue }) {
-  const displayState = getDisplayedOrderState(receipt, nowValue);
+function SplitBillPanel({ receipt }) {
+  const orderItems = useMemo(
+    () =>
+      (receipt.items || []).map((item) => {
+        const totalOrderedQty = Math.max(0, Number(item.quantity || 0));
+        const lineTotal = Number(item.lineTotal || 0);
+        const fallbackUnitPrice = Number(item.priceAtTime || 0);
+
+        return {
+          id: String(item.menuItemId),
+          name: item.name,
+          totalOrderedQty,
+          unitPrice: totalOrderedQty > 0 ? lineTotal / totalOrderedQty : fallbackUnitPrice,
+        };
+      }),
+    [receipt.items],
+  );
+  const [guests, setGuests] = useState([
+    { id: "guest-1", name: "Guest 1", claimedItems: [] },
+    { id: "guest-2", name: "Guest 2", claimedItems: [] },
+  ]);
+
+  const itemsById = useMemo(
+    () => new Map(orderItems.map((item) => [item.id, item])),
+    [orderItems],
+  );
+
+  const itemSubtotal = orderItems.reduce(
+    (sum, item) => sum + item.unitPrice * item.totalOrderedQty,
+    0,
+  );
+  const explicitTax = Math.max(0, Number(receipt.totalPrice || 0) - itemSubtotal);
+  const taxAndCharges = explicitTax || itemSubtotal * 0.13;
+  const claimedQuantityByItem = orderItems.reduce((summary, item) => {
+    summary[item.id] = guests.reduce(
+      (total, guest) =>
+        total +
+        guest.claimedItems
+          .filter((claim) => claim.itemId === item.id)
+          .reduce((guestTotal, claim) => guestTotal + Number(claim.qty || 0), 0),
+      0,
+    );
+    return summary;
+  }, {});
+  const remainingItems = orderItems.map((item) => ({
+    ...item,
+    remainingQty: Math.max(0, item.totalOrderedQty - (claimedQuantityByItem[item.id] || 0)),
+  }));
+  const totalUnassignedQty = remainingItems.reduce((sum, item) => sum + item.remainingQty, 0);
+  const allAssigned = orderItems.length > 0 && totalUnassignedQty === 0;
+
+  const shares = guests.map((guest) => {
+    const subtotal = guest.claimedItems.reduce((sum, claim) => {
+      const item = itemsById.get(claim.itemId);
+      return item ? sum + item.unitPrice * Number(claim.qty || 0) : sum;
+    }, 0);
+    const taxShare =
+      allAssigned && itemSubtotal > 0 ? (subtotal / itemSubtotal) * taxAndCharges : 0;
+
+    return {
+      ...guest,
+      subtotal,
+      taxShare,
+      total: subtotal + taxShare,
+    };
+  });
+
+  function getRemainingQtyFromGuests(sourceGuests, itemId, guestIdToSkip, claimRowIdToSkip) {
+    const item = itemsById.get(itemId);
+    if (!item) return 0;
+
+    const claimedElsewhere = sourceGuests.reduce(
+      (total, guest) =>
+        total +
+        guest.claimedItems.reduce((guestTotal, claim) => {
+          const isCurrentRow = guest.id === guestIdToSkip && claim.rowId === claimRowIdToSkip;
+          if (claim.itemId !== itemId || isCurrentRow) return guestTotal;
+          return guestTotal + Number(claim.qty || 0);
+        }, 0),
+      0,
+    );
+
+    return Math.max(0, item.totalOrderedQty - claimedElsewhere);
+  }
+
+  function getRemainingQty(itemId, guestIdToSkip, claimRowIdToSkip) {
+    return getRemainingQtyFromGuests(guests, itemId, guestIdToSkip, claimRowIdToSkip);
+  }
+
+  function addGuest() {
+    setGuests((current) => [
+      ...current,
+      { id: `guest-${Date.now()}`, name: `Guest ${current.length + 1}`, claimedItems: [] },
+    ]);
+  }
+
+  function removeGuest(id) {
+    setGuests((current) => {
+      if (current.length <= 1) return current;
+      return current.filter((guest) => guest.id !== id);
+    });
+  }
+
+  function updateName(id, name) {
+    setGuests((current) =>
+      current.map((guest) => (guest.id === id ? { ...guest, name } : guest)),
+    );
+  }
+
+  function addDishToGuest(guestId, itemId) {
+    if (!itemId) return;
+
+    setGuests((current) =>
+      getRemainingQtyFromGuests(current, itemId) <= 0
+        ? current
+        : current.map((guest) =>
+            guest.id === guestId
+              ? {
+                  ...guest,
+                  claimedItems: [
+                    ...guest.claimedItems,
+                    { rowId: `claim-${Date.now()}-${Math.random()}`, itemId, qty: 1 },
+                  ],
+                }
+              : guest,
+          ),
+    );
+  }
+
+  function updateClaimQty(guestId, rowId, qty) {
+    setGuests((current) =>
+      current.map((guest) => {
+        if (guest.id !== guestId) return guest;
+
+        const claimedItems = guest.claimedItems.map((claim) => {
+          if (claim.rowId !== rowId) return claim;
+          const maxQty = getRemainingQtyFromGuests(current, claim.itemId, guestId, rowId);
+          const nextQty = Math.min(Math.max(0, Number(qty || 0)), maxQty);
+          return { ...claim, qty: nextQty };
+        });
+
+        return { ...guest, claimedItems };
+      }),
+    );
+  }
+
+  function removeClaim(guestId, rowId) {
+    setGuests((current) =>
+      current.map((guest) =>
+        guest.id === guestId
+          ? {
+              ...guest,
+              claimedItems: guest.claimedItems.filter((claim) => claim.rowId !== rowId),
+            }
+          : guest,
+      ),
+    );
+  }
+
+  return (
+    <section className="customer-tool-card">
+      <div className="split-panel-head">
+        <h3>Split the bill</h3>
+        <button className="menu-secondary-button" onClick={addGuest}>
+          Add guest
+        </button>
+      </div>
+
+      <p className="split-divider-text">
+        Add dishes under each guest. Tax is calculated after every ordered quantity is assigned.
+      </p>
+
+      <div className="split-remaining-pool">
+        {remainingItems.some((item) => item.remainingQty > 0)
+          ? remainingItems
+              .filter((item) => item.remainingQty > 0)
+              .map((item) => `${item.remainingQty}x ${item.name}`)
+              .join(", ")
+          : "All dishes assigned"}
+      </div>
+
+      <div className="split-guest-list">
+        {shares.map((guest) => {
+          const addableItems = remainingItems.filter((item) => item.remainingQty > 0);
+
+          return (
+            <div className="split-guest-card" key={guest.id}>
+              <div className="split-guest-head">
+                <input
+                  aria-label={`${guest.name} name`}
+                  className="split-guest-name"
+                  onChange={(event) => updateName(guest.id, event.target.value)}
+                  value={guest.name}
+                />
+                <button aria-label={`Remove ${guest.name}`} onClick={() => removeGuest(guest.id)}>
+                  Remove
+                </button>
+              </div>
+
+              <div className="split-claim-list">
+                {guest.claimedItems.length === 0 ? (
+                  <p className="split-empty-state">No dishes added yet.</p>
+                ) : null}
+
+                {guest.claimedItems.map((claim) => {
+                  const item = itemsById.get(claim.itemId);
+                  if (!item) return null;
+                  const maxQty = getRemainingQty(claim.itemId, guest.id, claim.rowId);
+
+                  return (
+                    <div className="split-claim-row" key={claim.rowId}>
+                      <div className="split-claim-main">
+                        <strong>{item.name}</strong>
+                        <span>
+                          {formatCurrency(item.unitPrice)} each - {formatCurrency(item.unitPrice * claim.qty)}
+                        </span>
+                      </div>
+                      <input
+                        aria-label={`${item.name} quantity for ${guest.name}`}
+                        className="split-qty-input"
+                        max={maxQty}
+                        min="0"
+                        onChange={(event) => updateClaimQty(guest.id, claim.rowId, event.target.value)}
+                        type="number"
+                        value={claim.qty}
+                      />
+                      <button
+                        aria-label={`Remove ${item.name} from ${guest.name}`}
+                        onClick={() => removeClaim(guest.id, claim.rowId)}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="split-add-dish-row">
+                <select
+                  aria-label={`Add dish for ${guest.name}`}
+                  disabled={addableItems.length === 0}
+                  onChange={(event) => {
+                    addDishToGuest(guest.id, event.target.value);
+                    event.target.value = "";
+                  }}
+                  value=""
+                >
+                  <option value="">Add dish</option>
+                  {addableItems.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name} ({item.remainingQty} left)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="split-person-row">
+                <div>
+                  <span>Subtotal {formatCurrency(guest.subtotal)}</span>
+                  <small>
+                    {allAssigned
+                      ? `Tax share ${formatCurrency(guest.taxShare)}`
+                      : `${totalUnassignedQty} item${totalUnassignedQty === 1 ? "" : "s"} left + tax pending`}
+                  </small>
+                </div>
+                <strong>{formatCurrency(guest.total)}</strong>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function FeedbackPanel() {
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState("");
+  const [sent, setSent] = useState(false);
+
+  if (sent) {
+    return (
+      <section className="customer-tool-card customer-tool-success">
+        <h3>Thank you</h3>
+        <p>Your feedback was shared with the restaurant team.</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="customer-tool-card">
+      <div>
+        <h3>Leave feedback</h3>
+        <p>Tell the restaurant how the food and service felt today.</p>
+      </div>
+      <div className="rating-row" aria-label="Rating">
+        {[1, 2, 3, 4, 5].map((value) => (
+          <button
+            className={value <= rating ? "is-active" : ""}
+            key={value}
+            onClick={() => setRating(value)}
+          >
+            ★
+          </button>
+        ))}
+      </div>
+      <textarea
+        className="feedback-textarea"
+        onChange={(event) => setComment(event.target.value)}
+        placeholder="What stood out?"
+        rows={3}
+        value={comment}
+      />
+      <button className="menu-primary-button customer-tool-action" onClick={() => setSent(true)}>
+        Submit feedback
+      </button>
+    </section>
+  );
+}
+
+function ReceiptPanel({ restaurant, receipt, onStartNewOrder }) {
+  const displayState = getDisplayedOrderState(receipt);
+  const [activeTool, setActiveTool] = useState("split");
 
   return (
     <section className="receipt-panel">
@@ -450,7 +796,7 @@ function ReceiptPanel({ restaurant, receipt, onStartNewOrder, nowValue }) {
         through preparing, plating, and serving. Code window: {formatTimeLeft(receipt.expiresAt)}.
       </p>
 
-      <OrderStatusTimeline nowValue={nowValue} receipt={receipt} />
+      <OrderStatusTimeline receipt={receipt} />
 
       <div className="receipt-grid">
         <div>
@@ -482,18 +828,49 @@ function ReceiptPanel({ restaurant, receipt, onStartNewOrder, nowValue }) {
         ))}
       </div>
 
-      <button className="menu-secondary-button" onClick={onStartNewOrder}>
-        Start another order
-      </button>
+      <div className="customer-tools">
+        <div className="customer-tool-tabs">
+          <button
+            className={activeTool === "split" ? "is-active" : ""}
+            onClick={() => setActiveTool("split")}
+          >
+            Split bill
+          </button>
+          <button
+            className={activeTool === "feedback" ? "is-active" : ""}
+            onClick={() => setActiveTool("feedback")}
+          >
+            Feedback
+          </button>
+        </div>
+        {activeTool === "split" ? <SplitBillPanel receipt={receipt} /> : <FeedbackPanel />}
+      </div>
+
+      <div className="receipt-actions">
+        <button
+          className="menu-secondary-button"
+          onClick={() => printCustomerReceipt({ restaurant, receipt })}
+        >
+          Print receipt
+        </button>
+        <button className="menu-secondary-button" onClick={onStartNewOrder}>
+          Start another order
+        </button>
+      </div>
     </section>
   );
 }
 
 export default function Menu() {
   const searchParams = new URLSearchParams(window.location.search);
-  const restaurantId = searchParams.get("restaurant_id") || String(DEFAULT_RESTAURANT_ID);
-  const scannedTable = searchParams.get("table") || "";
+  const qrToken = searchParams.get("t") || "";
+  const paramRestaurantId = searchParams.get("restaurant_id") || String(DEFAULT_RESTAURANT_ID);
+  const paramTable = searchParams.get("table") || "";
 
+  const [restaurantId, setRestaurantId] = useState(paramRestaurantId);
+  const [tableId, setTableId] = useState(null);
+  const [tableLocked, setTableLocked] = useState(Boolean(qrToken));
+  const [qrPending, setQrPending] = useState(Boolean(qrToken));
   const [restaurant, setRestaurant] = useState(null);
   const [menuItems, setMenuItems] = useState([]);
   const [catalogState, setCatalogState] = useState("loading");
@@ -503,24 +880,51 @@ export default function Menu() {
   const [selectedDish, setSelectedDish] = useState(null);
   const [arLoading, setArLoading] = useState(false);
   const [customerName, setCustomerName] = useState("");
-  const [tableNumber, setTableNumber] = useState(scannedTable);
+  const [tableNumber, setTableNumber] = useState(paramTable);
   const [specialRequest, setSpecialRequest] = useState("");
   const [submitState, setSubmitState] = useState("idle");
   const [submitError, setSubmitError] = useState("");
   const [receipt, setReceipt] = useState(null);
-  const [nowValue, setNowValue] = useState(Date.now());
 
+  // Resolve the table (and its restaurant) from a scanned QR token.
   useEffect(() => {
-    const intervalId = window.setInterval(() => {
-      setNowValue(Date.now());
-    }, 30000);
+    if (!qrToken) {
+      return undefined;
+    }
+
+    let ignore = false;
+
+    resolveTable(qrToken)
+      .then((info) => {
+        if (ignore) {
+          return;
+        }
+        setRestaurantId(String(info.restaurantId));
+        setTableId(info.tableId);
+        setTableNumber(info.tableNumber);
+        setTableLocked(true);
+      })
+      .catch(() => {
+        if (!ignore) {
+          setTableLocked(false);
+        }
+      })
+      .finally(() => {
+        if (!ignore) {
+          setQrPending(false);
+        }
+      });
 
     return () => {
-      window.clearInterval(intervalId);
+      ignore = true;
     };
-  }, []);
+  }, [qrToken]);
 
   useEffect(() => {
+    if (qrPending) {
+      return undefined;
+    }
+
     let ignore = false;
     setCatalogState("loading");
     setCatalogError("");
@@ -531,7 +935,7 @@ export default function Menu() {
           return;
         }
 
-        const tableKey = scannedTable || result.restaurant.sampleTable || "";
+        const tableKey = tableNumber || paramTable || result.restaurant.sampleTable || "";
         setRestaurant(result.restaurant);
         setMenuItems(result.menuItems);
         setTableNumber((currentValue) => currentValue || tableKey);
@@ -550,7 +954,8 @@ export default function Menu() {
     return () => {
       ignore = true;
     };
-  }, [restaurantId, scannedTable]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restaurantId, qrPending]);
 
   useEffect(() => {
     if (!selectedDish) {
@@ -578,7 +983,7 @@ export default function Menu() {
           return;
         }
 
-        const storageTable = receipt.tableNumber || scannedTable || restaurant?.sampleTable || "";
+        const storageTable = receipt.tableNumber || paramTable || restaurant?.sampleTable || "";
         setReceipt(nextReceipt);
         storeReceipt(restaurantId, storageTable, nextReceipt);
       } catch {
@@ -593,7 +998,8 @@ export default function Menu() {
       active = false;
       window.clearInterval(intervalId);
     };
-  }, [receipt?.orderId, receipt?.verificationCode, restaurantId, scannedTable, restaurant?.sampleTable, receipt?.tableNumber]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [receipt?.orderId, receipt?.verificationCode, restaurantId, restaurant?.sampleTable, receipt?.tableNumber]);
 
   const cartItems = useMemo(
     () =>
@@ -619,6 +1025,7 @@ export default function Menu() {
   );
 
   const menuGroups = useMemo(() => Array.from(groupMenuItems(menuItems).entries()), [menuItems]);
+  const isQrMenu = Boolean(qrToken);
 
   function adjustQuantity(menuItemId, delta) {
     setCart((currentCart) => {
@@ -648,6 +1055,7 @@ export default function Menu() {
     try {
       const createdOrder = await createOrder({
         restaurantId,
+        tableId,
         tableNumber,
         customerName,
         specialRequest,
@@ -675,7 +1083,7 @@ export default function Menu() {
         })),
       };
 
-      const storageTable = tableNumber || scannedTable || restaurant?.sampleTable || "";
+      const storageTable = tableNumber || paramTable || restaurant?.sampleTable || "";
       setReceipt(nextReceipt);
       storeReceipt(restaurantId, storageTable, nextReceipt);
       setCart({});
@@ -688,7 +1096,7 @@ export default function Menu() {
   }
 
   function handleStartNewOrder() {
-    const storageTable = tableNumber || scannedTable || restaurant?.sampleTable || "";
+    const storageTable = tableNumber || paramTable || restaurant?.sampleTable || "";
     clearReceipt(restaurantId, storageTable);
     setReceipt(null);
     setCustomerName("");
@@ -714,44 +1122,113 @@ export default function Menu() {
   }
 
   return (
-    <main className="menu-shell">
+    <main className={`menu-shell ${isQrMenu ? "is-qr-menu" : ""}`}>
+      {!isQrMenu ? (
+      <nav className="menu-topbar">
+        <a className="menu-brand" href="/">
+          <span>Mapolos</span>
+          <strong>OrderOS</strong>
+        </a>
+      </nav>
+      ) : null}
+
+      {!isQrMenu ? (
       <header className="restaurant-hero">
         <div>
-          <p className="section-label">QR dining menu</p>
           <h1>{restaurant.name}</h1>
-          <p className="restaurant-copy">{restaurant.description}</p>
+          <p className="restaurant-copy">
+            {restaurant.description} Order from the table, preview dishes in 3D, and track every
+            step without waiting for the bill folder.
+          </p>
+          <div className="restaurant-actions">
+            <button
+              className="menu-primary-button"
+              onClick={() => document.getElementById("menu-catalog")?.scrollIntoView({ behavior: "smooth" })}
+            >
+              Explore menu
+            </button>
+          </div>
+        </div>
+
+        <div className="restaurant-phone">
+          <div className="phone-status-row">
+            <span>Table {tableNumber || paramTable || restaurant.sampleTable}</span>
+            <strong>{formatCurrency(cartTotal)}</strong>
+          </div>
+          <div className="phone-dish-stack">
+            {menuItems.slice(0, 2).map((item) => (
+              <div className="phone-dish-row" key={item.id}>
+                <img alt="" src={item.imageUrl} />
+                <div>
+                  <strong>{item.name}</strong>
+                  <span>{formatCurrency(item.price)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="phone-progress">
+            <span />
+            <span />
+            <span />
+          </div>
         </div>
 
         <div className="restaurant-meta">
           <span>{restaurant.location}</span>
-          <span>Table {tableNumber || scannedTable || restaurant.sampleTable}</span>
-          <span>{menuItems.length} dishes ready to order</span>
+          <span>{menuItems.length} dishes ready</span>
+          <span>AR previews</span>
+          <span>Live order tracking</span>
         </div>
       </header>
+      ) : (
+        <header className="qr-menu-header">
+          <div>
+            <h1>{restaurant.name}</h1>
+            <p>{restaurant.location}</p>
+          </div>
+          <div className="qr-table-chip">Table {tableNumber || paramTable || restaurant.sampleTable}</div>
+        </header>
+      )}
 
       {receipt ? (
         <ReceiptPanel
-          nowValue={nowValue}
           onStartNewOrder={handleStartNewOrder}
           receipt={receipt}
           restaurant={restaurant}
         />
       ) : (
         <>
+          {!isQrMenu ? (
           <section className="menu-overview">
             <div>
-              <p className="section-label">Order from the table</p>
-              <h2>Browse the dishes, preview them in AR, and place the order in a few taps.</h2>
+              <h2>Digital ordering restaurants can sell today.</h2>
             </div>
             <div className="menu-overview-side">
-              <div className="overview-chip">No login required</div>
-              <div className="overview-chip">Live order status</div>
-              <div className="overview-chip">AR dish preview</div>
+              <div className="overview-chip">QR ordering</div>
+              <div className="overview-chip">Pickup-ready</div>
+              <div className="overview-chip">Split bill demo</div>
+              <div className="overview-chip">Kitchen sync</div>
             </div>
           </section>
+          ) : null}
 
-          {menuGroups.map(([category, items]) => (
-            <section className="menu-section" key={category}>
+          {isQrMenu ? (
+            <nav className="mobile-category-rail" aria-label="Menu categories">
+              {menuGroups.map(([category]) => (
+                <a href={`#category-${category.replace(/\s+/g, "-").toLowerCase()}`} key={category}>
+                  {category}
+                </a>
+              ))}
+            </nav>
+          ) : null}
+
+          {menuGroups.map(([category, items], index) => (
+            <section
+              className="menu-section"
+              id={`category-${category.replace(/\s+/g, "-").toLowerCase()}`}
+              key={category}
+            >
+              <span id={index === 0 ? "menu-catalog" : undefined} />
               <div className="menu-section-head">
                 <div>
                   <p className="section-label">Category</p>
@@ -776,9 +1253,10 @@ export default function Menu() {
         </>
       )}
 
-      {cartCount > 0 && !receipt ? (
+      {cartCount > 0 && !receipt && !checkoutOpen ? (
         <button className="cart-pill" onClick={() => setCheckoutOpen(true)}>
-          <span>{cartCount} item(s)</span>
+          <span className="cart-pill-count">{cartCount}</span>
+          <span>View order</span>
           <strong>{formatCurrency(cartTotal)}</strong>
         </button>
       ) : null}
@@ -796,6 +1274,7 @@ export default function Menu() {
           specialRequest={specialRequest}
           submitError={submitError}
           submitting={submitState === "submitting"}
+          tableLocked={tableLocked}
           tableNumber={tableNumber}
         />
       ) : null}

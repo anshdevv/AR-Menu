@@ -24,6 +24,9 @@ export default defineConfig([
     },
     rules: {
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // Loading flags + load-on-mount effects are used throughout; this v7 rule
+      // flags those legitimate patterns, so we opt out of it project-wide.
+      'react-hooks/set-state-in-effect': 'off',
     },
   },
 ])

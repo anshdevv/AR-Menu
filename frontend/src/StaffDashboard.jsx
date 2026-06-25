@@ -1,25 +1,79 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   adminSignIn,
   adminSignOut,
   clearAdminSessionToken,
-  formatCurrency,
   getAdminAnalytics,
   getAdminOrders,
   getAdminSession,
   getStoredAdminSessionToken,
   verifyOrderCode,
 } from "./orderService";
+import Analytics from "./Analytics";
+import FloorPlan from "./FloorPlan";
+import Inventory from "./Inventory";
+import KitchenDisplay from "./KitchenDisplay";
+import MenuManager from "./MenuManager";
+import POSTerminal from "./POSTerminal";
+import Reservations from "./Reservations";
+import SaaSControl from "./SaaSControl";
+import StaffOps from "./StaffOps";
+import TablesManager from "./TablesManager";
 import "./StaffDashboard.css";
 
-function formatTimestamp(value) {
-  return new Date(value).toLocaleString([], {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+const TABS = {
+  command: { key: "command", label: "Command" },
+  pos: { key: "pos", label: "POS" },
+  floor: { key: "floor", label: "Floor" },
+  kitchen: { key: "kitchen", label: "Kitchen" },
+  reservations: { key: "reservations", label: "Reservations" },
+  menu: { key: "menu", label: "Menu" },
+  inventory: { key: "inventory", label: "Inventory" },
+  staff: { key: "staff", label: "Staff" },
+  tables: { key: "tables", label: "Tables & QR" },
+  saas: { key: "saas", label: "SaaS" },
+};
+
+const ROLE_ACCESS = {
+  owner: ["command", "pos", "floor", "kitchen", "reservations", "menu", "inventory", "staff", "tables", "saas"],
+  manager: ["floor", "reservations", "menu", "inventory", "staff", "tables"],
+  chef: ["kitchen"],
+  counterstaff: ["pos"],
+};
+
+const ROLE_LABELS = {
+  owner: "Owner",
+  manager: "Manager",
+  chef: "Chef",
+  counterstaff: "Counter staff",
+};
+
+const ROLE_HOME = {
+  owner: "command",
+  manager: "menu",
+  chef: "kitchen",
+  counterstaff: "pos",
+};
+
+const DEMO_CREDENTIALS = [
+  ["Owner", "owner@mapolos.com", "Owner@123"],
+  ["Manager", "manager@mapolos.com", "Manager@123"],
+  ["Chef", "chef@mapolos.com", "Chef@123"],
+  ["Counter", "counter@mapolos.com", "Counter@123"],
+];
+
+function defaultRange() {
+  const to = new Date();
+  const from = new Date();
+  from.setDate(from.getDate() - 29);
+  return { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) };
+}
+
+function rangeToIso(range) {
+  const from = range.from ? new Date(`${range.from}T00:00:00`).toISOString() : null;
+  const to = range.to ? new Date(`${range.to}T23:59:59`).toISOString() : null;
+  return { from, to };
 }
 
 function LoginPanel({ email, password, onEmailChange, onPasswordChange, onSubmit, error, loading }) {
@@ -28,10 +82,10 @@ function LoginPanel({ email, password, onEmailChange, onPasswordChange, onSubmit
       <section className="admin-login-card">
         <div>
           <p className="admin-section-label">Protected staff portal</p>
-          <h1>Manager access only.</h1>
+          <h1>Staff access only.</h1>
           <p>
-            This dashboard is protected by restaurant admin credentials and never exposed in the
-            guest menu flow.
+            Role-based access keeps owners, managers, chefs, and counter staff in the tools they
+            actually need.
           </p>
         </div>
 
@@ -70,8 +124,12 @@ function LoginPanel({ email, password, onEmailChange, onPasswordChange, onSubmit
         {error ? <p className="admin-error">{error}</p> : null}
 
         <div className="admin-login-help">
-          <p>Demo credentials seeded in the SQL file:</p>
-          <code>manager@mapolos.com / Mapolos@123</code>
+          <p>Demo credentials:</p>
+          <div className="credential-grid">
+            {DEMO_CREDENTIALS.map(([role, login, pass]) => (
+              <code key={role}>{role}: {login} / {pass}</code>
+            ))}
+          </div>
         </div>
 
         <Link className="admin-secondary-button" to="/">
@@ -82,117 +140,61 @@ function LoginPanel({ email, password, onEmailChange, onPasswordChange, onSubmit
   );
 }
 
-function MetricCard({ label, value, hint }) {
-  return (
-    <article className="metric-card">
-      <span>{label}</span>
-      <strong>{value}</strong>
-      <p>{hint}</p>
-    </article>
-  );
-}
+function VerifyPanel({ onVerified, verificationRate }) {
+  const [code, setCode] = useState("");
+  const [state, setState] = useState("idle");
+  const [message, setMessage] = useState("");
 
-function RevenueChart({ items }) {
-  const maxRevenue = Math.max(...items.map((item) => item.revenue), 1);
+  async function handleVerify() {
+    if (code.trim().length < 4) {
+      return;
+    }
+    setState("loading");
+    setMessage("");
+    try {
+      const result = await verifyOrderCode({ code: code.trim() });
+      setMessage(`Order #${result.orderId} confirmed.`);
+      setCode("");
+      setState("success");
+      await onVerified();
+    } catch (error) {
+      setMessage(error.message);
+      setState("error");
+    }
+  }
 
   return (
-    <section className="admin-panel">
+    <section className="admin-panel verify-panel">
       <div className="admin-panel-head">
         <div>
-          <p className="admin-section-label">Revenue trend</p>
-          <h2>Last 7 days</h2>
+          <p className="admin-section-label">Code verification</p>
+          <h2>Confirm guest orders</h2>
         </div>
+        <span className="verification-rate">{verificationRate}% verified</span>
       </div>
 
-      <div className="revenue-chart">
-        {items.map((item) => (
-          <div className="revenue-bar-group" key={item.date}>
-            <span className="revenue-bar-value">{formatCurrency(item.revenue)}</span>
-            <div className="revenue-bar-track">
-              <div
-                className="revenue-bar-fill"
-                style={{ height: `${Math.max(18, (item.revenue / maxRevenue) * 100)}%` }}
-              />
-            </div>
-            <span className="revenue-bar-label">{item.label}</span>
-          </div>
-        ))}
+      <div className="verify-form">
+        <input
+          inputMode="numeric"
+          maxLength={6}
+          onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              handleVerify();
+            }
+          }}
+          placeholder="Enter customer code"
+          value={code}
+        />
+        <button className="admin-primary-button" onClick={handleVerify}>
+          {state === "loading" ? "Verifying..." : "Verify code"}
+        </button>
       </div>
+
+      {message ? (
+        <p className={state === "error" ? "admin-error" : "admin-success"}>{message}</p>
+      ) : null}
     </section>
-  );
-}
-
-function TopItemsTable({ items }) {
-  return (
-    <section className="admin-panel">
-      <div className="admin-panel-head">
-        <div>
-          <p className="admin-section-label">Top dishes</p>
-          <h2>Best sellers</h2>
-        </div>
-      </div>
-
-      <div className="top-items-list">
-        {items.map((item) => (
-          <div className="top-item-row" key={item.name}>
-            <div>
-              <strong>{item.name}</strong>
-              <p>{item.quantity} servings sold</p>
-            </div>
-            <span>{formatCurrency(item.revenue)}</span>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function OrderCard({ order }) {
-  return (
-    <article className="admin-order-card">
-      <div className="admin-order-top">
-        <div>
-          <span className={`admin-order-status status-${order.status}`}>{order.status.replace("_", " ")}</span>
-          <h3>{order.customerName || "Walk-in order"}</h3>
-        </div>
-        <div className="admin-order-meta">
-          <strong>{formatCurrency(order.totalPrice)}</strong>
-          <span>{formatTimestamp(order.createdAt)}</span>
-        </div>
-      </div>
-
-      <div className="admin-order-grid">
-        <div>
-          <span>Order</span>
-          <strong>#{order.id}</strong>
-        </div>
-        <div>
-          <span>Table</span>
-          <strong>{order.tableNumber || "Walk-in"}</strong>
-        </div>
-        <div>
-          <span>Verified</span>
-          <strong>{order.isVerified ? "Yes" : "Pending"}</strong>
-        </div>
-        <div>
-          <span>Code window</span>
-          <strong>{formatTimestamp(order.expiresAt)}</strong>
-        </div>
-      </div>
-
-      {order.specialRequest ? <p className="admin-order-note">{order.specialRequest}</p> : null}
-
-      <div className="admin-order-items">
-        {order.items.map((item) => (
-          <div className="admin-order-item" key={`${order.id}-${item.menuItemId}`}>
-            <span>
-              {item.quantity}x {item.name}
-            </span>
-            <strong>{formatCurrency(item.lineTotal)}</strong>
-          </div>
-        ))}
-      </div>
-    </article>
   );
 }
 
@@ -206,16 +208,14 @@ export default function StaffDashboard() {
   const [authError, setAuthError] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [verificationCode, setVerificationCode] = useState("");
-  const [verificationState, setVerificationState] = useState("idle");
-  const [verificationMessage, setVerificationMessage] = useState("");
+  const [tab, setTab] = useState("command");
+  const [range, setRange] = useState(defaultRange);
 
   useEffect(() => {
     const existingToken = getStoredAdminSessionToken();
-
     if (!existingToken) {
       setLoading(false);
-      return;
+      return undefined;
     }
 
     let active = true;
@@ -223,12 +223,10 @@ export default function StaffDashboard() {
     async function bootstrap() {
       try {
         const sessionData = await getAdminSession(existingToken);
-
-        if (!active) {
-          return;
+        if (active) {
+          setSession(sessionData);
+          setTab(ROLE_HOME[sessionData.admin.role] || "command");
         }
-
-        setSession(sessionData);
       } catch {
         clearAdminSessionToken();
       } finally {
@@ -239,15 +237,26 @@ export default function StaffDashboard() {
     }
 
     bootstrap();
-
     return () => {
       active = false;
     };
   }, []);
 
+  async function refreshOrders() {
+    const nextOrders = await getAdminOrders();
+    setOrders(nextOrders);
+    return nextOrders;
+  }
+
+  async function refreshAnalytics(nextRange = range) {
+    const nextAnalytics = await getAdminAnalytics(rangeToIso(nextRange));
+    setAnalytics(nextAnalytics);
+    return nextAnalytics;
+  }
+
   useEffect(() => {
     if (!session) {
-      return;
+      return undefined;
     }
 
     let active = true;
@@ -255,14 +264,12 @@ export default function StaffDashboard() {
     async function loadDashboard() {
       try {
         const [nextAnalytics, nextOrders] = await Promise.all([
-          getAdminAnalytics(),
+          getAdminAnalytics(rangeToIso(range)),
           getAdminOrders(),
         ]);
-
         if (!active) {
           return;
         }
-
         setAnalytics(nextAnalytics);
         setOrders(nextOrders);
         setPageError("");
@@ -270,37 +277,31 @@ export default function StaffDashboard() {
         if (!active) {
           return;
         }
-
         if (error.message.toLowerCase().includes("session")) {
           setSession(null);
           clearAdminSessionToken();
         }
-
         setPageError(error.message);
       }
     }
 
     loadDashboard();
     const intervalId = window.setInterval(loadDashboard, 15000);
-
     return () => {
       active = false;
       window.clearInterval(intervalId);
     };
-  }, [session]);
-
-  const filteredOrders = useMemo(() => {
-    return orders;
-  }, [orders]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, range.from, range.to]);
 
   async function handleSignIn() {
     setAuthLoading(true);
     setAuthError("");
-
     try {
       await adminSignIn({ email, password });
       const sessionData = await getAdminSession();
       setSession(sessionData);
+      setTab(ROLE_HOME[sessionData.admin.role] || "command");
       setPassword("");
     } catch (error) {
       setAuthError(error.message);
@@ -314,30 +315,6 @@ export default function StaffDashboard() {
     setSession(null);
     setAnalytics(null);
     setOrders([]);
-    setVerificationCode("");
-    setVerificationMessage("");
-  }
-
-  async function handleVerifyCode() {
-    if (verificationCode.trim().length < 4) {
-      return;
-    }
-
-    setVerificationState("loading");
-    setVerificationMessage("");
-
-    try {
-      const result = await verifyOrderCode({ code: verificationCode.trim() });
-      setVerificationMessage(`Order #${result.orderId} confirmed.`);
-      setVerificationCode("");
-      const [nextAnalytics, nextOrders] = await Promise.all([getAdminAnalytics(), getAdminOrders()]);
-      setAnalytics(nextAnalytics);
-      setOrders(nextOrders);
-      setVerificationState("success");
-    } catch (error) {
-      setVerificationMessage(error.message);
-      setVerificationState("error");
-    }
   }
 
   if (loading) {
@@ -362,14 +339,20 @@ export default function StaffDashboard() {
     );
   }
 
+  const verificationRate = analytics ? analytics.metrics.verificationRate : 0;
+  const role = session.admin.role || "manager";
+  const availableTabs = (ROLE_ACCESS[role] || ROLE_ACCESS.manager).map((key) => TABS[key]);
+  const canUse = (key) => availableTabs.some((entry) => entry.key === key);
+  const activeTab = canUse(tab) ? tab : availableTabs[0]?.key || "command";
+
   return (
     <main className="admin-shell">
       <header className="admin-hero">
         <div>
-          <p className="admin-section-label">Authenticated manager dashboard</p>
+          <p className="admin-section-label">Restaurant management console</p>
           <h1>{session.restaurant.name}</h1>
           <p>
-            Protected analytics, verification, and order monitoring for {session.restaurant.location}.
+            Signed in as {ROLE_LABELS[role] || role}. Your workspace only shows authorized tools.
           </p>
         </div>
 
@@ -383,117 +366,86 @@ export default function StaffDashboard() {
         </div>
       </header>
 
-      <section className="admin-grid metrics-grid">
-        <MetricCard
-          hint="Orders placed since midnight"
-          label="Orders today"
-          value={analytics ? analytics.metrics.ordersToday : 0}
-        />
-        <MetricCard
-          hint="Verified order revenue today"
-          label="Revenue today"
-          value={analytics ? formatCurrency(analytics.metrics.revenueToday) : formatCurrency(0)}
-        />
-        <MetricCard
-          hint="Orders waiting for staff confirmation"
-          label="Pending verification"
-          value={analytics ? analytics.metrics.pendingVerification : 0}
-        />
-        <MetricCard
-          hint="Average basket across all orders"
-          label="Average ticket"
-          value={analytics ? formatCurrency(analytics.metrics.avgOrderValue) : formatCurrency(0)}
-        />
-      </section>
+      <nav className="admin-tabs">
+        {availableTabs.map((entry) => (
+          <button
+            className={`admin-tab ${activeTab === entry.key ? "is-active" : ""}`}
+            key={entry.key}
+            onClick={() => setTab(entry.key)}
+          >
+            {entry.label}
+          </button>
+        ))}
+      </nav>
 
-      <section className="admin-grid dashboard-grid">
-        <section className="admin-panel verify-panel">
+      {pageError ? <p className="admin-error">{pageError}</p> : null}
+
+      {activeTab === "command" && canUse("command") ? (
+        <Analytics analytics={analytics} onRangeChange={setRange} range={range} />
+      ) : null}
+
+      {activeTab === "pos" && canUse("pos") ? (
+        <section className="admin-panel admin-feature-shell">
           <div className="admin-panel-head">
             <div>
-              <p className="admin-section-label">Code verification</p>
-              <h2>Confirm guest orders</h2>
+              <p className="admin-section-label">Counter service</p>
+              <h2>POS terminal</h2>
             </div>
-            <span className="verification-rate">
-              {analytics ? `${analytics.metrics.verificationRate}% verified` : "0% verified"}
-            </span>
           </div>
-
-          <div className="verify-form">
-            <input
-              inputMode="numeric"
-              maxLength={6}
-              onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, ""))}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  handleVerifyCode();
-                }
-              }}
-              placeholder="Enter customer code"
-              value={verificationCode}
-            />
-            <button className="admin-primary-button" onClick={handleVerifyCode}>
-              {verificationState === "loading" ? "Verifying..." : "Verify code"}
-            </button>
-          </div>
-
-          {verificationMessage ? (
-            <p className={verificationState === "error" ? "admin-error" : "admin-success"}>
-              {verificationMessage}
-            </p>
-          ) : null}
+          <POSTerminal
+            onOrderPlaced={async () => {
+              await Promise.all([refreshOrders(), refreshAnalytics()]);
+            }}
+            restaurant={session.restaurant}
+          />
         </section>
+      ) : null}
 
-        {analytics ? <RevenueChart items={analytics.dailyRevenue} /> : null}
-      </section>
-
-      <section className="admin-grid dashboard-grid">
-        {analytics ? <TopItemsTable items={analytics.topItems} /> : null}
-
-        <section className="admin-panel">
+      {activeTab === "floor" && canUse("floor") ? (
+        <section className="admin-panel admin-feature-shell">
           <div className="admin-panel-head">
             <div>
-              <p className="admin-section-label">Access</p>
-              <h2>Current admin session</h2>
+              <p className="admin-section-label">Dining room</p>
+              <h2>Live floor plan</h2>
             </div>
           </div>
-
-          <div className="session-card">
-            <div>
-              <span>Email</span>
-              <strong>{session.admin.email}</strong>
-            </div>
-            <div>
-              <span>Role</span>
-              <strong>{session.admin.role}</strong>
-            </div>
-            <div>
-              <span>Restaurant</span>
-              <strong>{session.restaurant.name}</strong>
-            </div>
-            <div>
-              <span>Sample table QR</span>
-              <strong>{session.restaurant.sampleTable}</strong>
-            </div>
-          </div>
+          <FloorPlan
+            onChanged={async () => {
+              await Promise.all([refreshOrders(), refreshAnalytics()]);
+            }}
+          />
         </section>
-      </section>
+      ) : null}
 
-      <section className="admin-orders-section">
-        <div className="admin-panel-head">
-          <div>
-            <p className="admin-section-label">Recent orders</p>
-            <h2>Live service queue</h2>
-          </div>
-        </div>
+      {activeTab === "kitchen" && canUse("kitchen") ? (
+        <>
+          <VerifyPanel
+            onVerified={async () => {
+              await Promise.all([refreshOrders(), refreshAnalytics()]);
+            }}
+            verificationRate={verificationRate}
+          />
+          <KitchenDisplay
+            onChanged={async () => {
+              await Promise.all([refreshOrders(), refreshAnalytics()]);
+            }}
+            orders={orders}
+            restaurant={session.restaurant}
+          />
+        </>
+      ) : null}
 
-        {pageError ? <p className="admin-error">{pageError}</p> : null}
+      {activeTab === "reservations" && canUse("reservations") ? <Reservations /> : null}
 
-        <div className="admin-orders-list">
-          {filteredOrders.map((order) => (
-            <OrderCard key={order.id} order={order} />
-          ))}
-        </div>
-      </section>
+      {activeTab === "menu" && canUse("menu") ? <MenuManager /> : null}
+
+      {activeTab === "inventory" && canUse("inventory") ? <Inventory /> : null}
+
+      {activeTab === "staff" && canUse("staff") ? <StaffOps /> : null}
+
+      {activeTab === "tables" && canUse("tables") ? <TablesManager restaurant={session.restaurant} /> : null}
+
+      {activeTab === "saas" && canUse("saas") ? <SaaSControl restaurant={session.restaurant} /> : null}
     </main>
   );
 }

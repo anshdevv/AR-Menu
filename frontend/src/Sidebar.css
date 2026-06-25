@@ -1,0 +1,130 @@
+.sidebar {
+  width: 230px;
+  min-height: 100vh;
+  background: #1a120b;
+  color: #e8ddd4;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.sidebar-head {
+  padding: 24px 18px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+.sidebar-brand {
+  font-family: "Cormorant Garamond", serif;
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #f0c97e;
+  letter-spacing: 0.04em;
+  display: block;
+}
+
+.sidebar-restaurant {
+  margin: 4px 0 0;
+  font-size: 0.75rem;
+  color: #9e8e80;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-divider {
+  height: 1px;
+  background: rgba(255,255,255,0.06);
+  margin: 8px 8px;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: #b8a898;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+  width: 100%;
+}
+
+.sidebar-item:hover {
+  background: rgba(255,255,255,0.06);
+  color: #f0ece8;
+}
+
+.sidebar-item.is-active {
+  background: rgba(240,201,126,0.15);
+  color: #f0c97e;
+}
+
+.sidebar-icon {
+  font-size: 1rem;
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.sidebar-foot {
+  padding: 10px 10px 20px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-signout {
+  color: #c08070;
+}
+
+.sidebar-signout:hover {
+  background: rgba(192,128,112,0.15);
+  color: #e09080;
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    width: 56px;
+    overflow: visible;
+  }
+
+  .sidebar-brand,
+  .sidebar-restaurant,
+  .sidebar-item span:last-child,
+  .sidebar-divider {
+    display: none;
+  }
+
+  .sidebar-head {
+    padding: 16px 8px;
+    text-align: center;
+  }
+
+  .sidebar-item {
+    justify-content: center;
+    padding: 10px;
+  }
+
+  .sidebar-icon {
+    width: auto;
+  }
+}
