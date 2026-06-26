@@ -180,14 +180,23 @@
   position: absolute;
   right: 10px;
   bottom: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 7px 13px;
   border-radius: 999px;
   border: none;
   background: rgba(17, 17, 20, 0.78);
   color: #fff;
+  cursor: pointer;
   font-size: 0.78rem;
   font-weight: 700;
+  text-decoration: none;
   backdrop-filter: blur(6px);
+}
+
+.dish-ar-chip > img {
+  display: none;
 }
 
 .dish-card-body {

@@ -121,6 +121,18 @@ function clearReceipt(restaurantId, tableNumber) {
   window.sessionStorage.removeItem(receiptStorageKey(restaurantId, tableNumber));
 }
 
+function getUsdzModelUrl(dish) {
+  return dish.arModelUrl?.replace(/\.glb($|\?)/i, ".usdz$1") || "";
+}
+
+function isIphoneDevice() {
+  if (typeof navigator === "undefined") {
+    return false;
+  }
+
+  return /iPhone|iPod/i.test(navigator.userAgent) || navigator.platform === "iPhone";
+}
+
 function formatTimeLeft(isoValue) {
   if (!isoValue) {
     return "Expired";
@@ -211,18 +223,27 @@ function StatusBadge({ label, tone }) {
   return <span className={`receipt-status tone-${tone}`}>{label}</span>;
 }
 
-function DishCard({ dish, quantity, onAdjustQuantity, onViewAr }) {
+function DishCard({ dish, isIphone, quantity, onAdjustQuantity, onViewAr }) {
+  const usdzModelUrl = getUsdzModelUrl(dish);
+
   return (
     <article className="dish-card">
       <div className="dish-card-image">
         <img alt={dish.name} src={dish.imageUrl} />
-        <button
-          className="dish-ar-chip"
-          onClick={() => onViewAr(dish)}
-          type="button"
-        >
-          View in AR
-        </button>
+        {isIphone && usdzModelUrl ? (
+          <a className="dish-ar-chip" href={usdzModelUrl} rel="ar">
+            <img alt="" aria-hidden="true" src={dish.imageUrl} />
+            <span>View in AR</span>
+          </a>
+        ) : (
+          <button
+            className="dish-ar-chip"
+            onClick={() => onViewAr(dish)}
+            type="button"
+          >
+            View in AR
+          </button>
+        )}
       </div>
 
       <div className="dish-card-body">
@@ -394,7 +415,7 @@ function ArModal({ dish, loading, onClose, onModelLoad }) {
             ar
             ar-modes="webxr scene-viewer quick-look"
             camera-controls
-            ios-src={dish.arModelUrl.replace(".glb", ".usdz")}
+            ios-src={getUsdzModelUrl(dish)}
             ref={viewerRef}
             shadow-intensity="1"
             src={dish.arModelUrl}
@@ -1026,6 +1047,7 @@ export default function Menu() {
 
   const menuGroups = useMemo(() => Array.from(groupMenuItems(menuItems).entries()), [menuItems]);
   const isQrMenu = Boolean(qrToken);
+  const isIphone = useMemo(() => isIphoneDevice(), []);
 
   function adjustQuantity(menuItemId, delta) {
     setCart((currentCart) => {
@@ -1241,6 +1263,7 @@ export default function Menu() {
                 {items.map((dish) => (
                   <DishCard
                     dish={dish}
+                    isIphone={isIphone}
                     key={dish.id}
                     onAdjustQuantity={adjustQuantity}
                     onViewAr={setSelectedDish}
