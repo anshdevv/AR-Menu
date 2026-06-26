@@ -154,13 +154,20 @@
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--bg);
+  cursor: pointer;
   overflow: hidden;
   transition: box-shadow 0.18s ease, transform 0.18s ease;
 }
 
-.dish-card:hover {
+.dish-card:hover,
+.dish-card:focus-visible {
   box-shadow: 0 12px 30px rgba(17, 17, 20, 0.08);
   transform: translateY(-2px);
+}
+
+.dish-card:focus-visible {
+  outline: 3px solid rgba(22, 163, 74, 0.35);
+  outline-offset: 3px;
 }
 
 .dish-card-image {
@@ -620,6 +627,10 @@
   transform: translateX(-50%);
   background: var(--ink);
   color: #fff;
+}
+
+.ar-launch-button > img {
+  display: none;
 }
 
 /* ---- Receipt / order status --------------------------------------------- */

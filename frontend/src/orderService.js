@@ -166,6 +166,15 @@ function isBrowser() {
   return typeof window !== "undefined";
 }
 
+function withTimeout(promise, milliseconds = 5000) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      globalThis.setTimeout(() => reject(new Error("Request timed out.")), milliseconds);
+    }),
+  ]);
+}
+
 function mapRestaurant(row) {
   return {
     id: row.id,
@@ -876,25 +885,36 @@ export async function resolveTable(qrToken) {
 // Customer: catalog
 // ---------------------------------------------------------------------------
 export async function getRestaurantCatalog(restaurantId) {
-  const [restaurantResult, menuResult] = await Promise.all([
-    supabase
-      .from("restaurants")
-      .select("id, name, description, location, sample_table")
-      .eq("id", restaurantId)
-      .single(),
-    supabase
-      .from("menu_items")
-      .select(
-        "id, restaurant_id, category, name, description, price, ar_model_url, image_url, is_available, display_order",
-      )
-      .eq("restaurant_id", restaurantId)
-      .eq("is_available", true)
-      .order("category", { ascending: true })
-      .order("display_order", { ascending: true }),
-  ]);
-
   const fallbackRestaurant = getRestaurantById(restaurantId);
   const fallbackMenuItems = getDemoMenuForRestaurant(restaurantId).filter((item) => item.isAvailable);
+  let restaurantResult;
+  let menuResult;
+
+  try {
+    [restaurantResult, menuResult] = await withTimeout(
+      Promise.all([
+        supabase
+          .from("restaurants")
+          .select("id, name, description, location, sample_table")
+          .eq("id", restaurantId)
+          .single(),
+        supabase
+          .from("menu_items")
+          .select(
+            "id, restaurant_id, category, name, description, price, ar_model_url, image_url, is_available, display_order",
+          )
+          .eq("restaurant_id", restaurantId)
+          .eq("is_available", true)
+          .order("category", { ascending: true })
+          .order("display_order", { ascending: true }),
+      ]),
+    );
+  } catch {
+    if (fallbackRestaurant) {
+      return { restaurant: fallbackRestaurant, menuItems: fallbackMenuItems };
+    }
+    throw new Error("Unable to load restaurant catalog.");
+  }
 
   if ((restaurantResult.error || !restaurantResult.data) && fallbackRestaurant) {
     return { restaurant: fallbackRestaurant, menuItems: fallbackMenuItems };

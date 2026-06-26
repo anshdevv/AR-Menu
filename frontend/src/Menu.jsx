@@ -10,7 +10,6 @@ import {
 import { printCustomerReceipt } from "./printing";
 import "./Menu.css";
 
-const MODEL_VIEWER_SRC = "https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js";
 const RECEIPT_STORAGE_PREFIX = "mapolos-customer-receipt";
 
 const ORDER_STAGES = [
@@ -48,23 +47,7 @@ function ensureModelViewer() {
   }
 
   if (!modelViewerLoader) {
-    modelViewerLoader = new Promise((resolve, reject) => {
-      const existingScript = document.querySelector('script[data-model-viewer="true"]');
-
-      if (existingScript) {
-        existingScript.addEventListener("load", resolve, { once: true });
-        existingScript.addEventListener("error", reject, { once: true });
-        return;
-      }
-
-      const script = document.createElement("script");
-      script.type = "module";
-      script.src = MODEL_VIEWER_SRC;
-      script.dataset.modelViewer = "true";
-      script.addEventListener("load", resolve, { once: true });
-      script.addEventListener("error", reject, { once: true });
-      document.head.appendChild(script);
-    });
+    modelViewerLoader = import("@google/model-viewer");
   }
 
   return modelViewerLoader;
@@ -223,27 +206,31 @@ function StatusBadge({ label, tone }) {
   return <span className={`receipt-status tone-${tone}`}>{label}</span>;
 }
 
-function DishCard({ dish, isIphone, quantity, onAdjustQuantity, onViewAr }) {
-  const usdzModelUrl = getUsdzModelUrl(dish);
+function DishCard({ dish, quantity, onAdjustQuantity, onViewAr }) {
+  function handleCardKeyDown(event) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onViewAr(dish);
+    }
+  }
+
+  function adjustFromControl(event, delta) {
+    event.stopPropagation();
+    onAdjustQuantity(dish.id, delta);
+  }
 
   return (
-    <article className="dish-card">
+    <article
+      aria-label={`Open ${dish.name} 3D preview`}
+      className="dish-card"
+      onClick={() => onViewAr(dish)}
+      onKeyDown={handleCardKeyDown}
+      role="button"
+      tabIndex={0}
+    >
       <div className="dish-card-image">
         <img alt={dish.name} src={dish.imageUrl} />
-        {isIphone && usdzModelUrl ? (
-          <a className="dish-ar-chip" href={usdzModelUrl} rel="ar">
-            <img alt="" aria-hidden="true" src={dish.imageUrl} />
-            <span>View in AR</span>
-          </a>
-        ) : (
-          <button
-            className="dish-ar-chip"
-            onClick={() => onViewAr(dish)}
-            type="button"
-          >
-            View in AR
-          </button>
-        )}
+        <span className="dish-ar-chip">View in 3D</span>
       </div>
 
       <div className="dish-card-body">
@@ -259,17 +246,17 @@ function DishCard({ dish, isIphone, quantity, onAdjustQuantity, onViewAr }) {
             <div className="dish-quantity-control">
               <button
                 aria-label={`Remove ${dish.name}`}
-                onClick={() => onAdjustQuantity(dish.id, -1)}
+                onClick={(event) => adjustFromControl(event, -1)}
               >
                 −
               </button>
               <span>{quantity}</span>
-              <button aria-label={`Add ${dish.name}`} onClick={() => onAdjustQuantity(dish.id, 1)}>
+              <button aria-label={`Add ${dish.name}`} onClick={(event) => adjustFromControl(event, 1)}>
                 +
               </button>
             </div>
           ) : (
-            <button className="dish-add-button" onClick={() => onAdjustQuantity(dish.id, 1)}>
+            <button className="dish-add-button" onClick={(event) => adjustFromControl(event, 1)}>
               Add to order
             </button>
           )}
@@ -375,6 +362,8 @@ function CheckoutDrawer({
 
 function ArModal({ dish, loading, onClose, onModelLoad }) {
   const viewerRef = useRef(null);
+  const isIphone = useMemo(() => isIphoneDevice(), []);
+  const usdzModelUrl = getUsdzModelUrl(dish);
 
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -415,17 +404,25 @@ function ArModal({ dish, loading, onClose, onModelLoad }) {
             ar
             ar-modes="webxr scene-viewer quick-look"
             camera-controls
-            ios-src={getUsdzModelUrl(dish)}
+            ios-src={usdzModelUrl}
             ref={viewerRef}
             shadow-intensity="1"
             src={dish.arModelUrl}
             style={{ width: "100%", height: "100%" }}
             touch-action="pan-y"
           >
-            <button className="menu-primary-button ar-launch-button" slot="ar-button">
-              View in your space
-            </button>
+            {!isIphone ? (
+              <button className="menu-primary-button ar-launch-button" slot="ar-button">
+                View in your space
+              </button>
+            ) : null}
           </model-viewer>
+          {isIphone && usdzModelUrl ? (
+            <a className="menu-primary-button ar-launch-button" href={usdzModelUrl} rel="ar">
+              <img alt="" aria-hidden="true" src={dish.imageUrl} />
+              <span>View in your space</span>
+            </a>
+          ) : null}
         </div>
       </section>
     </div>
@@ -1047,7 +1044,6 @@ export default function Menu() {
 
   const menuGroups = useMemo(() => Array.from(groupMenuItems(menuItems).entries()), [menuItems]);
   const isQrMenu = Boolean(qrToken);
-  const isIphone = useMemo(() => isIphoneDevice(), []);
 
   function adjustQuantity(menuItemId, delta) {
     setCart((currentCart) => {
@@ -1263,7 +1259,6 @@ export default function Menu() {
                 {items.map((dish) => (
                   <DishCard
                     dish={dish}
-                    isIphone={isIphone}
                     key={dish.id}
                     onAdjustQuantity={adjustQuantity}
                     onViewAr={setSelectedDish}
